@@ -18,7 +18,7 @@ Get-CountryCode
     )
 
     Begin {
-        #Build out our dataset using CultureInfo and a custom powershell object o make things easily searchable
+        #Build out our dataset using CultureInfo and a custom powershell object to make things easily searchable
         $Cultures = [System.Globalization.CultureInfo]::
         GetCultures(
             [System.Globalization.CultureTypes]::
@@ -27,15 +27,15 @@ Get-CountryCode
 
         $Obj = @()
         $Cultures | ForEach-Object {
-            $DisplayNameSplit = $_.DisplayName.Split("(|)")
+            $DisplayNameSplit = $_.DisplayName.Split([Char[]]"()").Trim()
             $RegionInfo = New-Object System.Globalization.RegionInfo $_.name
             $Obj += [pscustomobject]@{
                 Name                     = $RegionInfo.Name
                 EnglishName              = $RegionInfo.EnglishName
                 TwoLetterISORegionName   = $RegionInfo.TwoLetterISORegionName
                 ThreeLetterISORegionName = $RegionInfo.ThreeLetterISORegionName
-                Language                 = $DisplayNameSplit[0].Trim()
-                Country                  = $DisplayNameSplit[1].Trim()
+                Language                 = $DisplayNameSplit[0]
+                Country                  = $DisplayNameSplit[1]
             }
         }
     }
@@ -43,15 +43,19 @@ Get-CountryCode
 
     Process {
         if ($Alpha = 2) {
+            Write-Verbose -Message "Alpha-2 Codes will be returned..."
             # Filter out the non ISO-3166 codes. Some objects returned from System.Globalization.RegionInfo do not follow the standard. Examples: Latin America, Caribbean, Europe. 
-            # These aren't generally countries, despite being labeled as such from the RegionInfo
+            # These aren't generally countries, despite being labeled as such from the RegionInfo object.
             $Alpha2 = $Obj | Where-Object { $_.TwoLetterISORegionName.length -le 2 }
             $Search = $Alpha2 | Where-Object { $_.Country -like "*$Country*" }
             If (!($Search)) {
+                Write-Verbose -Message "`$Search is null. No results found..."
                 Write-Warning "No Results found. Check your spelling, and ensure you are entering a Country. Please try again."
             }
-            Elseif (($Search | Measure-Object).Count -gt 1) {
+        Elseif (($Search | Measure-Object).Count -gt 1) {
+                Write-Verbose -Message "Multiple returns found on search. Determining if all returned items have the same country code..."
                 if ((($Search | Group-Object TwoLetterISORegionName) | Measure-Object).count -eq 1) {
+                    Write-Verbose -Message "Multiple returns all have same country code..."
                     return ($Search | Group-Object TwoLetterISORegionName).Name
                 }
                 Else {
@@ -59,29 +63,32 @@ Get-CountryCode
                     return  ($Search | Group-Object TwoLetterISORegionName).Name
                 }
             }
-            Else {
+        Else {
+                Write-Verbose -Message "Only one possibly match found in search. Returning value..."
                 return $Search.TwoLetterISORegionName
             }
         }
         
         if ($Alpha = 3) {
-            # Filter out the non ISO-3166 codes
+            Write-Verbose -Message "Alpha-3 Codes will be returned"
+            # Filter out the non ISO-3166 codes. Some objects returned from System.Globalization.RegionInfo do not follow the standard. Examples: Latin America, Caribbean, Europe. 
+            # These aren't generally countries, despite being labeled as such from the RegionInfo object.
             $Alpha3 = $Obj | Where-Object { $_.ThreeLetterISORegionName -match "^[A-Z]*$" }
             $Search = $Alpha3 | Where-Object { $_.Country -like "*$Country*" }
             If (!($Search)) {
                 Write-Warning "No Results found. Check your spelling, and ensure you are entering a Country. Please try again."
             }
             Elseif (($Search | Measure-Object).Count -gt 1) {
-                if ((($Search | Group-Object TwoLetterISORegionName) | Measure-Object).count -eq 1) {
-                    return ($Search | Group-Object TwoLetterISORegionName).Name
+                if ((($Search | Group-Object ThreeLetterISORegionName) | Measure-Object).count -eq 1) {
+                    return ($Search | Group-Object ThreeLetterISORegionName).Name
                 }
                 Else {
                     Write-Warning "Multiple Country Codes found for search. May need to refine search if using this as part of another script"
-                    return  ($Search | Group-Object TwoLetterISORegionName).Name
+                    return  ($Search | Group-Object ThreeLetterISORegionName).Name
                 }
             }
             Else {
-                return $Search.TwoLetterISORegionName
+                return $Search.ThreeLetterISORegionName
             }
         }
     }
