@@ -12,8 +12,8 @@ Get-CountryCode
     [CmdletBinding()]
     Param (
         [String]$SearchCountry,
-        [ValidateSet(2, 3)]
         #For most general purposes, alpha-2 codes are used per ISO-3166.
+        [ValidateSet(2, 3)]
         [int]$Alpha = 2
     )
 
@@ -43,11 +43,11 @@ Get-CountryCode
 
     Process {
         if ($Alpha = 2) {
-            Write-Verbose -Message "Alpha-2 Codes will be returned..."
+            Write-Verbose -Message "Alpha-2 mode engaged..."
             # Filter out the non ISO-3166 codes. Some objects returned from System.Globalization.RegionInfo do not follow the standard. Examples: Latin America, Caribbean, Europe. 
             # These aren't generally countries, despite being labeled as such from the RegionInfo object.
             $Alpha2 = $Obj | Where-Object { $_.TwoLetterISORegionName.length -le 2 }
-            $Search = $Alpha2 | Where-Object { $_.Country -like "*$Country*" }
+            $Search = $Alpha2 | Where-Object { $_.Country -like "*$SearchCountry*" }
             If (!($Search)) {
                 Write-Verbose -Message "`$Search is null. No results found..."
                 Write-Warning "No Results found. Check your spelling, and ensure you are entering a Country. Please try again."
@@ -70,7 +70,7 @@ Get-CountryCode
         }
         
         if ($Alpha = 3) {
-            Write-Verbose -Message "Alpha-3 Codes will be returned"
+            Write-Verbose -Message "Alpha-3 mode engaged..."
             # Filter out the non ISO-3166 codes. Some objects returned from System.Globalization.RegionInfo do not follow the standard. Examples: Latin America, Caribbean, Europe. 
             # These aren't generally countries, despite being labeled as such from the RegionInfo object.
             $Alpha3 = $Obj | Where-Object { $_.ThreeLetterISORegionName -match "^[A-Z]*$" }
